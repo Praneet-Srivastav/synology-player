@@ -1,0 +1,35 @@
+# Enable directory listing for video scanning
+Options +Indexes
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+# MIME types for video files
+AddType video/mp4 .mp4
+AddType video/webm .webm
+AddType video/ogg .ogv .ogg
+AddType video/quicktime .mov
+AddType video/x-msvideo .avi
+AddType video/x-matroska .mkv
+
+# Enable CORS for local access
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type"
+
+# Cache video files for better performance
+<FilesMatch "\.(mp4|webm|avi|mov|mkv|ogg|ogv)$">
+    ExpiresActive On
+    ExpiresDefault "access plus 1 week"
+    Header append Cache-Control "public"
+</FilesMatch>
+
+# Disable caching for HTML and JSON files
+<FilesMatch "\.(html|json)$">
+    ExpiresActive On
+    ExpiresDefault "access plus 0 seconds"
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+</FilesMatch>

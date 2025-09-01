@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synology Video Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #a1a1aa;
+            font-size: 1.1rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .folder-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .folder-input input {
+            padding: 8px 12px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+            min-width: 300px;
+        }
+
+        .folder-input input::placeholder {
+            color: #888;
+        }
+
+        .scan-btn, .refresh-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .scan-btn:hover, .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .video-count {
+            color: #a1a1aa;
+            font-size: 14px;
+        }
+
+        .player-section {
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .current-video-info {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .current-video-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .current-video-meta {
+            color: #a1a1aa;
+            font-size: 14px;
+        }
+
+        .video-player {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .video-player video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .video-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-item:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px rgba(79, 70, 229, 0.2);
+            border-color: rgba(79, 70, 229, 0.4);
+        }
+
+        .video-item.active {
+            background: rgba(79, 70, 229, 0.2);
+            border-color: #4f46e5;
+        }
+
+        .video-item.active::before {
+            content: "▶";
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #4f46e5;
+            font-size: 18px;
+        }
+
+        .video-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .video-meta {
+            color: #a1a1aa;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .video-format {
+            background: rgba(79, 70, 229, 0.8);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a1a1aa;
+        }
+
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a1a1aa;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #d1d5db;
+        }
+
+        .keyboard-shortcuts {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #a1a1aa;
+            max-width: 200px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .keyboard-shortcuts.show {
+            opacity: 1;
+        }
+
+        .keyboard-shortcuts h4 {
+            color: #fff;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .keyboard-shortcuts div {
+            margin-bottom: 4px;
+        }
+
+        .setup-instructions {
+            background: rgba(79, 70, 229, 0.1);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .setup-instructions h3 {
+            color: #8b5cf6;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .setup-instructions ol {
+            padding-left: 20px;
+        }
+
+        .setup-instructions li {
+            margin-bottom: 8px;
+            color: #d1d5db;
+        }
+
+        .setup-instructions code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #fbbf24;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .controls-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .folder-input {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .folder-input input {
+                min-width: auto;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .keyboard-shortcuts {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .video-item {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Synology Video Player</h1>
+            <p>Lightweight HTML5 video player for your personal media collection</p>
+        </div>
+
+        <div class="setup-instructions" id="setupInstructions">
+            <h3>🚀 Setup Instructions for Synology NAS</h3>
+            <ol>
+                <li>Place this HTML file in your Synology <code>web</code> folder (usually <code>/web/</code> or <code>/volume1/web/</code>)</li>
+                <li>Create a <code>videos</code> folder in the same directory as this HTML file</li>
+                <li>Upload your video files to the <code>videos</code> folder</li>
+                <li>Create a <code>videos.json</code> manifest file (see example below) or use the folder path method</li>
+                <li>Access via: <code>http://YOUR_NAS_IP:5000/videoplayerfilename.html</code> or through DSM File Station</li>
+                <li>For automatic scanning, ensure proper file permissions (755 for directories, 644 for files)</li>
+            </ol>
+        </div>
+
+        <div class="controls-bar">
+            <div class="folder-input">
+                <input type="text" id="folderPath" placeholder="Enter folder path (e.g., videos/ or /volume1/videos/)" value="videos/">
+                <button class="scan-btn" onclick="scanFolder()">Scan Folder</button>
+                <button class="refresh-btn" onclick="loadManifest()">Load Manifest</button>
+            </div>
+            <div class="video-count" id="videoCount">No videos loaded</div>
+        </div>
+
+        <div class="player-section">
+            <div class="current-video-info" id="currentVideoInfo" style="display: none;">
+                <div class="current-video-title" id="currentVideoTitle">No video selected</div>
+                <div class="current-video-meta" id="currentVideoMeta"></div>
+            </div>
+            <div class="video-player">
+                <video id="mainPlayer" controls preload="metadata" style="display: none;">
+                    Your browser does not support the video tag.
+                </video>
+                <div id="playerPlaceholder" style="background: rgba(255,255,255,0.05); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+                    <p style="color: #a1a1aa; font-size: 1.2rem;">Select a video to start playing</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="videoList">
+            <div class="loading" id="loadingIndicator" style="display: none;">
+                Loading videos...
+            </div>
+            <div class="empty-state" id="emptyState">
+                <h3>No Videos Found</h3>
+                <p>Upload videos to your configured folder and scan to get started.</p>
+            </div>
+            <div class="video-grid" id="videoGrid" style="display: none;">
+                <!-- Videos will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="keyboard-shortcuts" id="keyboardShortcuts">
+        <h4>Keyboard Shortcuts</h4>
+        <div><strong>Space:</strong> Play/Pause</div>
+        <div><strong>F:</strong> Fullscreen</div>
+        <div><strong>M:</strong> Mute</div>
+        <div><strong>←/→:</strong> Seek ±10s</div>
+        <div><strong>↑/↓:</strong> Volume ±10%</div>
+        <div><strong>H:</strong> Toggle shortcuts</div>
+    </div>
+
+    <script>
+        class SynologyVideoPlayer {
+            constructor() {
+                this.videos = [];
+                this.currentVideoIndex = -1;
+                this.player = document.getElementById('mainPlayer');
+                this.setupEventListeners();
+                this.showShortcuts = false;
+                
+                // Try to load videos on startup
+                this.loadManifest();
+            }
+
+            setupEventListeners() {
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (!this.player.src) return;
+                    
+                    switch(e.code) {
+                        case 'Space':
+                            e.preventDefault();
+                            this.togglePlayPause();
+                            break;
+                        case 'KeyF':
+                            e.preventDefault();
+                            this.toggleFullscreen();
+                            break;
+                        case 'KeyM':
+                            e.preventDefault();
+                            this.toggleMute();
+                            break;
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.seekVideo(-10);
+                            break;
+                        case 'ArrowRight':
+                            e.preventDefault();
+                            this.seekVideo(10);
+                            break;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            this.adjustVolume(0.1);
+                            break;
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            this.adjustVolume(-0.1);
+                            break;
+                        case 'KeyH':
+                            e.preventDefault();
+                            this.toggleShortcuts();
+                            break;
+                    }
+                });
+
+                // Video ended - play next
+                this.player.addEventListener('ended', () => {
+                    this.playNext();
+                });
+
+                // Update video info during playback
+                this.player.addEventListener('timeupdate', () => {
+                    this.updateVideoMeta();
+                });
+
+                // Show shortcuts on first load
+                setTimeout(() => {
+                    this.toggleShortcuts();
+                    setTimeout(() => this.toggleShortcuts(), 3000);
+                }, 1000);
+            }
+
+            async loadManifest() {
+                this.showLoading();
+                
+                try {
+                    const response = await fetch('videos.json');
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.videos = data.videos || [];
+                        this.displayVideos();
+                    } else {
+                        // If no manifest, try to scan the default folder
+                        await this.scanFolder();
+                    }
+                } catch (error) {
+                    console.log('No manifest found, trying folder scan...');
+                    await this.scanFolder();
+                }
+            }
+
+            async scanFolder() {
+                const folderPath = document.getElementById('folderPath').value.trim();
+                if (!folderPath) {
+                    this.showError('Please enter a folder path');
+                    return;
+                }
+
+                this.showLoading();
+
+                try {
+                    // Try to load directory listing
+                    const response = await fetch(folderPath);
+                    if (response.ok) {
+                        const html = await response.text();
+                        this.videos = this.parseDirectoryListing(html, folderPath);
+                        this.displayVideos();
+                    } else {
+                        this.showError('Could not access folder. Make sure the path is correct and accessible.');
+                    }
+                } catch (error) {
+                    this.showError('Error scanning folder: ' + error.message);
+                }
+            }
+
+            parseDirectoryListing(html, basePath) {
+                const videos = [];
+                const videoExtensions = ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.ogg', '.ogv'];
+                
+                // Parse HTML directory listing
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const links = doc.querySelectorAll('a[href]');
+                
+                links.forEach(link => {
+                    const href = link.getAttribute('href');
+                    const filename = decodeURIComponent(href);
+                    
+                    if (videoExtensions.some(ext => filename.toLowerCase().endsWith(ext))) {
+                        const fullPath = basePath.endsWith('/') ? basePath + filename : basePath + '/' + filename;
+                        videos.push({
+                            title: this.getVideoTitle(filename),
+                            filename: filename,
+                            path: fullPath,
+                            format: this.getVideoFormat(filename)
+                        });
+                    }
+                });
+
+                return videos;
+            }
+
+            getVideoTitle(filename) {
+                return filename.replace(/\.[^/.]+$/, "").replace(/[_-]/g, ' ');
+            }
+
+            getVideoFormat(filename) {
+                const ext = filename.split('.').pop().toLowerCase();
+                return ext.toUpperCase();
+            }
+
+            displayVideos() {
+                const videoGrid = document.getElementById('videoGrid');
+                const emptyState = document.getElementById('emptyState');
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const videoCount = document.getElementById('videoCount');
+
+                loadingIndicator.style.display = 'none';
+
+                if (this.videos.length === 0) {
+                    videoGrid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    videoCount.textContent = 'No videos found';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                videoGrid.style.display = 'grid';
+                videoCount.textContent = `${this.videos.length} video${this.videos.length !== 1 ? 's' : ''} found`;
+
+                videoGrid.innerHTML = this.videos.map((video, index) => `
+                    <div class="video-item" onclick="videoPlayer.playVideo(${index})">
+                        <div class="video-title">${video.title}</div>
+                        <div class="video-meta">
+                            <span>${video.filename}</span>
+                            <span class="video-format">${video.format}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Hide setup instructions once videos are loaded
+                document.getElementById('setupInstructions').style.display = 'none';
+            }
+
+            playVideo(index) {
+                if (index < 0 || index >= this.videos.length) return;
+
+                this.currentVideoIndex = index;
+                const video = this.videos[index];
+
+                // Update active state
+                document.querySelectorAll('.video-item').forEach((item, i) => {
+                    item.classList.toggle('active', i === index);
+                });
+
+                // Update player
+                this.player.src = video.path;
+                this.player.style.display = 'block';
+                document.getElementById('playerPlaceholder').style.display = 'none';
+
+                // Update video info
+                const videoInfo = document.getElementById('currentVideoInfo');
+                const videoTitle = document.getElementById('currentVideoTitle');
+                const videoMeta = document.getElementById('currentVideoMeta');
+
+                videoInfo.style.display = 'block';
+                videoTitle.textContent = video.title;
+                videoMeta.textContent = `${video.format} • ${video.filename}`;
+
+                // Auto-play
+                this.player.play().catch(e => console.log('Auto-play prevented:', e));
+            }
+
+            playNext() {
+                if (this.currentVideoIndex < this.videos.length - 1) {
+                    this.playVideo(this.currentVideoIndex + 1);
+                }
+            }
+
+            playPrevious() {
+                if (this.currentVideoIndex > 0) {
+                    this.playVideo(this.currentVideoIndex - 1);
+                }
+            }
+
+            togglePlayPause() {
+                if (this.player.paused) {
+                    this.player.play();
+                } else {
+                    this.player.pause();
+                }
+            }
+
+            toggleFullscreen() {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    this.player.requestFullscreen();
+                }
+            }
+
+            toggleMute() {
+                this.player.muted = !this.player.muted;
+            }
+
+            seekVideo(seconds) {
+                this.player.currentTime += seconds;
+            }
+
+            adjustVolume(delta) {
+                const newVolume = Math.max(0, Math.min(1, this.player.volume + delta));
+                this.player.volume = newVolume;
+            }
+
+            updateVideoMeta() {
+                if (!this.player.src) return;
+                
+                const current = this.formatTime(this.player.currentTime);
+                const duration = this.formatTime(this.player.duration);
+                const progress = ((this.player.currentTime / this.player.duration) * 100).toFixed(1);
+                
+                const videoMeta = document.getElementById('currentVideoMeta');
+                const video = this.videos[this.currentVideoIndex];
+                
+                if (video && !isNaN(this.player.duration)) {
+                    videoMeta.textContent = `${video.format} • ${current} / ${duration} (${progress}%)`;
+                }
+            }
+
+            formatTime(seconds) {
+                if (isNaN(seconds)) return '0:00';
+                
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            toggleShortcuts() {
+                const shortcuts = document.getElementById('keyboardShortcuts');
+                this.showShortcuts = !this.showShortcuts;
+                shortcuts.classList.toggle('show', this.showShortcuts);
+            }
+
+            showLoading() {
+                document.getElementById('loadingIndicator').style.display = 'block';
+                document.getElementById('videoGrid').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+                this.hideError();
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage') || this.createErrorDiv();
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
+
+            hideError() {
+                const errorDiv = document.getElementById('errorMessage');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+            }
+
+            createErrorDiv() {
+                const errorDiv = document.createElement('div');
+                errorDiv.id = 'errorMessage';
+                errorDiv.className = 'error';
+                document.getElementById('videoList').prepend(errorDiv);
+                return errorDiv;
+            }
+        }
+
+        // Global functions for HTML onclick handlers
+        let videoPlayer;
+
+        function scanFolder() {
+            videoPlayer.scanFolder();
+        }
+
+        function loadManifest() {
+            videoPlayer.loadManifest();
+        }
+
+        // Initialize the video player when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            videoPlayer = new SynologyVideoPlayer();
+        });
+    </script>
+</body>
+</html>

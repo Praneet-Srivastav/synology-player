@@ -1,0 +1,16 @@
+{
+  "videos": [
+    {
+      "title": "Sample Video 1",
+      "filename": "sample1.mp4",
+      "path": "videos/sample1.mp4",
+      "format": "MP4"
+    },
+    {
+      "title": "Sample Video 2", 
+      "filename": "sample2.webm",
+      "path": "videos/sample2.webm",
+      "format": "WEBM"
+    }
+  ]
+}
